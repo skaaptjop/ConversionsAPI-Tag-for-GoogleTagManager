@@ -105,6 +105,26 @@ ___TEMPLATE_PARAMETERS___
     "name": "extendCookies",
     "checkboxText": "Extend Meta Pixel cookies (fbp/fbp)",
     "simpleValueType": true
+  },
+  {
+    "type": "TEXT",
+    "name": "cookieExpiry",
+    "displayName": "Meta Pixel cookie (fpb/fbc) expiry",
+    "simpleValueType": true,
+    "defaultValue": 7776000,
+    "valueValidators": [
+      {
+        "type": "NON_NEGATIVE_NUMBER"
+      }
+    ],
+    "enablingConditions": [
+      {
+        "paramName": "extendCookies",
+        "paramValue": true,
+        "type": "EQUALS"
+      }
+    ],
+    "valueUnit": "seconds"
   }
 ]
 
@@ -153,7 +173,7 @@ function setFbCookie(name, value, expire) {
     path: '/',
     samesite: 'Lax',
     secure: true,
-    'max-age': expire || 7776000, // default to 90 days
+    'max-age': expire || data.cookieExpiry,
     httpOnly: false
   });
 }
@@ -299,6 +319,7 @@ sendHttpRequest(
   requestHeaders,
   JSON.stringify(eventRequest)
 );
+
 
 ___SERVER_PERMISSIONS___
 
@@ -790,7 +811,6 @@ scenarios:
     assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca'));
     assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(hashFunction('94025'));
     assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa'));
-
 - name: Set Meta cookies (fbp / fbc) if 'extendCookies' checkbox is ticked
   code: |
     runCode({
@@ -804,7 +824,6 @@ scenarios:
     //Assert
     assertApi('setCookie').wasCalled();
     assertApi('gtmOnSuccess').wasCalled();
-
 - name: Do not set Meta cookies (fbp / fbc) if 'extendCookies' checkbox is ticked
   code: |
     runCode({
@@ -818,7 +837,6 @@ scenarios:
     //Assert
     assertApi('setCookie').wasNotCalled();
     assertApi('gtmOnSuccess').wasCalled();
-
 - name: Format phone number to drop leading + if provided in user_data
   code: |
     mock('getAllEventData', () => {
@@ -833,7 +851,6 @@ scenarios:
 
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
     assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890'));
-
 setup: |-
   // Arrange
   const JSON = require('JSON');
